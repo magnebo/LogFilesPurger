@@ -24,10 +24,14 @@ namespace LogFilesPurger
 
             XmlConfigurator.ConfigureAndWatch(logFileInfo);
  
-            var logFilesBaseFolder = ConfigurationManager.AppSettings["LogFilesBaseFolder"];
-            Logger.InfoFormat("log files base folder: {0}", logFilesBaseFolder);
+            var logFilesBaseFoldersValue = ConfigurationManager.AppSettings["LogFilesBaseFolders"];
+            var logFilesBaseFolders =
+                new List<string>(logFilesBaseFoldersValue.Split(new char[] {',', ';'},
+                                                                StringSplitOptions.RemoveEmptyEntries));
+
+            Logger.InfoFormat("Log files base folders: {0}", string.Join(",", logFilesBaseFolders.ToArray()));
             var dateFormat = ConfigurationManager.AppSettings["DateFormat"];
-            Logger.InfoFormat("date format: {0}", dateFormat);
+            Logger.InfoFormat("Date format: {0}", dateFormat);
             var maxDateRollBackupsAsString = ConfigurationManager.AppSettings["MaxDateRollBackups"];
             int maxDateRollBackups;
             if (!int.TryParse(maxDateRollBackupsAsString, out maxDateRollBackups))
@@ -35,7 +39,7 @@ namespace LogFilesPurger
                 maxDateRollBackups = 30;
             }
             Logger.InfoFormat("max date roll backups: {0}", maxDateRollBackups);
-            var dateLogFilePurger = new DateLogFilesPurger(logFilesBaseFolder, dateFormat, maxDateRollBackups);
+            var dateLogFilePurger = new DateLogFilesPurger(logFilesBaseFolders, dateFormat, maxDateRollBackups);
             dateLogFilePurger.PurgeLogfiles();
         }
     }

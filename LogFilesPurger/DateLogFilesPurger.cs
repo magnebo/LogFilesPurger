@@ -13,27 +13,40 @@ namespace LogFilesPurger
         private const string DefaultLogFileExtension = ".log";
         private static readonly ILog Logger = LogManager.GetLogger(typeof (DateLogFilesPurger));
         private readonly string _dateFormat;
-        private readonly string _logFilesBaseFolder;
+        private readonly List<string> _logFilesBaseFolders;
         private readonly int _maxDateRollBackups;
         private readonly List<string> _logFilesExtensionsToNotDelete;
 
         public DateLogFilesPurger(string logFilesBaseFolder, string dateFormat, int maxDateRollBackups)
+            : this(new List<string>{logFilesBaseFolder}, dateFormat, maxDateRollBackups)
         {
-            _logFilesBaseFolder = logFilesBaseFolder;
+        }
+
+        public DateLogFilesPurger(List<string> logFilesBaseFolders, string dateFormat, int maxDateRollBackups)
+        {
+            _logFilesBaseFolders = logFilesBaseFolders;
             _dateFormat = dateFormat;
             _maxDateRollBackups = maxDateRollBackups;
-            var logFilesExtensionsToNotDelete = ConfigurationManager.AppSettings["LofFilesExtensionsToNotDelete"];
+            var logFilesExtensionsToNotDelete = ConfigurationManager.AppSettings["LogFileExtensionsToNotDelete"];
             _logFilesExtensionsToNotDelete =
-                new List<string>(logFilesExtensionsToNotDelete.Split(new char[] {',', ';'},
+                new List<string>(logFilesExtensionsToNotDelete.Split(new char[] { ',', ';' },
                                                                      StringSplitOptions.RemoveEmptyEntries));
         }
 
         public void PurgeLogfiles()
         {
-            List<string> logfilesFolders = GetAllSubFolders();
-            foreach (string logfilesFolder in logfilesFolders)
+            foreach (var logFilesBaseFolder in _logFilesBaseFolders)
             {
-                PurgeLogfiles(logfilesFolder);
+                if (string.IsNullOrWhiteSpace(logFilesBaseFolder))
+                {
+                    continue;
+                }
+                List<string> logFilesFolders = GetAllSubFolders(logFilesBaseFolder);
+                foreach (string logFilesFolder in logFilesFolders)
+                {
+                    PurgeLogfiles(logFilesFolder);
+                }
+                PurgeLogfiles(logFilesBaseFolder);
             }
         }
 
@@ -81,9 +94,9 @@ namespace LogFilesPurger
             }
         }
 
-        private List<string> GetAllSubFolders()
+        private List<string> GetAllSubFolders(string logFilesBaseFolder)
         {
-            string[] subFolders = Directory.GetDirectories(_logFilesBaseFolder, "*", SearchOption.AllDirectories);
+            string[] subFolders = Directory.GetDirectories(logFilesBaseFolder, "*", SearchOption.AllDirectories);
             var result = new List<string>(subFolders);
             return result;
         }
