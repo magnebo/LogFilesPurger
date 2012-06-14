@@ -38,9 +38,9 @@ namespace LogFilesPurger
             {
                 maxDateRollBackups = 30;
             }
-            Logger.InfoFormat("max date roll backups: {0}", maxDateRollBackups);
+            Logger.InfoFormat("Max date roll backups: {0}", maxDateRollBackups);
             var dateLogFilePurger = new DateLogFilesPurger(logFilesBaseFolders, dateFormat, maxDateRollBackups);
-            dateLogFilePurger.PurgeLogfiles();
+            dateLogFilePurger.PurgeLogFiles();
         }
     }
 }

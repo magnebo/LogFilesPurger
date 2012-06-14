@@ -10,9 +10,9 @@ namespace LogFilesPurger
 {
     public class DateLogFilesPurger
     {
-        private const string DefaultLogFileExtension = ".log";
         private static readonly ILog Logger = LogManager.GetLogger(typeof (DateLogFilesPurger));
         private readonly string _dateFormat;
+        private readonly string _defaultLogFileExtension;
         private readonly List<string> _logFilesBaseFolders;
         private readonly int _maxDateRollBackups;
         private readonly List<string> _logFilesExtensionsToNotDelete;
@@ -31,9 +31,14 @@ namespace LogFilesPurger
             _logFilesExtensionsToNotDelete =
                 new List<string>(logFilesExtensionsToNotDelete.Split(new char[] { ',', ';' },
                                                                      StringSplitOptions.RemoveEmptyEntries));
+            _defaultLogFileExtension = ConfigurationManager.AppSettings["DefaultLogFileExtension"];
+            if (string.IsNullOrWhiteSpace(_defaultLogFileExtension))
+            {
+                _defaultLogFileExtension = ".log";
+            }
         }
 
-        public void PurgeLogfiles()
+        public void PurgeLogFiles()
         {
             foreach (var logFilesBaseFolder in _logFilesBaseFolders)
             {
@@ -44,19 +49,19 @@ namespace LogFilesPurger
                 List<string> logFilesFolders = GetAllSubFolders(logFilesBaseFolder);
                 foreach (string logFilesFolder in logFilesFolders)
                 {
-                    PurgeLogfiles(logFilesFolder);
+                    PurgeLogFiles(logFilesFolder);
                 }
-                PurgeLogfiles(logFilesBaseFolder);
+                PurgeLogFiles(logFilesBaseFolder);
             }
         }
 
-        private void PurgeLogfiles(string folder)
+        private void PurgeLogFiles(string folder)
         {
             string[] files = Directory.GetFiles(folder);
             foreach (string file in files)
             {
                 string fileToLower = file.ToLower();
-                if (fileToLower.EndsWith(DefaultLogFileExtension))
+                if (fileToLower.EndsWith(_defaultLogFileExtension))
                 {
                     continue;
                 }
