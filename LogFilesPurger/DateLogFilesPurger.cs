@@ -11,26 +11,26 @@ namespace LogFilesPurger
     public class DateLogFilesPurger
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof (DateLogFilesPurger));
-        private readonly string _dateFormat;
+        private readonly List<string> _dateFormats;
         private readonly string _defaultLogFileExtension;
         private readonly List<string> _logFilesBaseFolders;
-        private readonly int _maxDateRollBackups;
         private readonly List<string> _logFilesExtensionsToNotDelete;
+        private readonly int _maxDateRollBackups;
 
-        public DateLogFilesPurger(string logFilesBaseFolder, string dateFormat, int maxDateRollBackups)
-            : this(new List<string>{logFilesBaseFolder}, dateFormat, maxDateRollBackups)
+        public DateLogFilesPurger(string logFilesBaseFolder, List<string> dateFormats, int maxDateRollBackups)
+            : this(new List<string> {logFilesBaseFolder}, dateFormats, maxDateRollBackups)
         {
         }
 
-        public DateLogFilesPurger(List<string> logFilesBaseFolders, string dateFormat, int maxDateRollBackups)
+        public DateLogFilesPurger(List<string> logFilesBaseFolders, List<string> dateFormats, int maxDateRollBackups)
         {
             _logFilesBaseFolders = logFilesBaseFolders;
-            _dateFormat = dateFormat;
+            _dateFormats = dateFormats;
             _maxDateRollBackups = maxDateRollBackups;
-            var logFilesExtensionsToNotDelete = ConfigurationManager.AppSettings["LogFileExtensionsToNotDelete"];
+            string logFilesExtensionsToNotDelete = ConfigurationManager.AppSettings["LogFileExtensionsToNotDelete"];
             _logFilesExtensionsToNotDelete =
-                new List<string>(logFilesExtensionsToNotDelete.Split(new char[] { ',', ';' },
-                                                                     StringSplitOptions.RemoveEmptyEntries));
+                new List<string>(logFilesExtensionsToNotDelete.Split(new[] {',', ';'},
+                    StringSplitOptions.RemoveEmptyEntries));
             _defaultLogFileExtension = ConfigurationManager.AppSettings["DefaultLogFileExtension"];
             if (string.IsNullOrWhiteSpace(_defaultLogFileExtension))
             {
@@ -40,7 +40,7 @@ namespace LogFilesPurger
 
         public void PurgeLogFiles()
         {
-            foreach (var logFilesBaseFolder in _logFilesBaseFolders)
+            foreach (string logFilesBaseFolder in _logFilesBaseFolders)
             {
                 if (string.IsNullOrWhiteSpace(logFilesBaseFolder))
                 {
@@ -71,15 +71,18 @@ namespace LogFilesPurger
                     continue;
                 }
 
-                bool deleteFile = true;
-                for (int i = 1; i <= _maxDateRollBackups; i++)
+                var deleteFile = true;
+                for (var i = 1; i <= _maxDateRollBackups; i++)
                 {
                     DateTime date = DateTime.Now.AddDays(-i);
-                    string filenameDate = date.ToString(_dateFormat, CultureInfo.InvariantCulture);
-                    if (fileToLower.Contains(filenameDate))
+                    foreach (string dateFormat in _dateFormats)
                     {
-                        deleteFile = false;
-                        break;
+                        string filenameDate = date.ToString(dateFormat, CultureInfo.InvariantCulture);
+                        if (fileToLower.Contains(filenameDate))
+                        {
+                            deleteFile = false;
+                            break;
+                        }
                     }
                 }
 
