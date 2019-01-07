@@ -5,6 +5,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using log4net;
+using log4net.Appender;
+using log4net.Repository.Hierarchy;
 
 namespace LogFilesPurger
 {
@@ -16,6 +18,7 @@ namespace LogFilesPurger
         private readonly List<string> _logFilesBaseFolders;
         private readonly List<string> _logFilesExtensionsToNotDelete;
         private readonly int _maxDateRollBackups;
+        private static string _ownLoggerFilePath;
 
         public DateLogFilesPurger(string logFilesBaseFolder, List<string> dateFormats, int maxDateRollBackups)
             : this(new List<string> {logFilesBaseFolder}, dateFormats, maxDateRollBackups)
@@ -57,22 +60,30 @@ namespace LogFilesPurger
 
         private void PurgeLogFiles(string folder)
         {
+            bool deleteFilesThatContainDateFormatInFilename =
+                ConfigurationManagerHelper.GetBooleanAppSettingValue("DeleteFilesThatContainDateFormatInFilename");
+
             string[] files = Directory.GetFiles(folder);
             foreach (string file in files)
             {
-                string fileToLower = file.ToLower();
-                if (fileToLower.EndsWith(_defaultLogFileExtension))
+                if (file == GetOwnLoggerFilename())
                 {
                     continue;
                 }
 
+                string fileToLower = file.ToLower();
                 if (_logFilesExtensionsToNotDelete.Any(x => fileToLower.EndsWith(x.ToLower())))
                 {
                     continue;
                 }
 
+                if (fileToLower.EndsWith(_defaultLogFileExtension) && !deleteFilesThatContainDateFormatInFilename)
+                {
+                    continue;
+                }
+                
                 var deleteFile = true;
-                for (var i = 1; i <= _maxDateRollBackups; i++)
+                for (var i = 0; i <= _maxDateRollBackups; i++)
                 {
                     DateTime date = DateTime.Now.AddDays(-i);
                     foreach (string dateFormat in _dateFormats)
@@ -107,6 +118,20 @@ namespace LogFilesPurger
             string[] subFolders = Directory.GetDirectories(logFilesBaseFolder, "*", SearchOption.AllDirectories);
             var result = new List<string>(subFolders);
             return result;
+        }
+
+        private static string GetOwnLoggerFilename()
+        {
+            if (_ownLoggerFilePath == null)
+            {
+                var rootAppender = ((Hierarchy)LogManager.GetRepository())
+                    .Root.Appenders.OfType<FileAppender>()
+                    .FirstOrDefault();
+
+                _ownLoggerFilePath = rootAppender != null ? rootAppender.File : string.Empty;
+            }
+
+            return _ownLoggerFilePath;
         }
     }
 }
